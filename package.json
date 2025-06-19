@@ -1,0 +1,22 @@
+{
+  "type": "module",
+  "devDependencies": {
+    "pg": "^8.16.0",
+    "prisma": "^6.9.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.9.0",
+    "@shopify/admin-api-client": "^1.1.0",
+    "axios": "^1.9.0",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "fs": "^0.0.1-security",
+    "graphql-request": "^7.2.0",
+    "install": "^0.13.0",
+    "node-fetch": "^3.3.2",
+    "npm": "^11.4.2",
+    "path": "^0.12.7"
+  }
+}

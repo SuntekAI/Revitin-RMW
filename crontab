@@ -1,0 +1,2 @@
+0 2 * * * node /usr/src/app/updateOldOrders.js >> /var/log/updateOldOrders.log 2>&1
+0 4 * * * node /usr/src/app/fullProductSync.js >> /var/log/fullProductSync.log 2>&1

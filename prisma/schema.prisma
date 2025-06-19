@@ -1,0 +1,148 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model products {
+  id                    BigInt    @id
+  gid                   String
+  title                 String
+  inventoryAvailableQty Int
+  tags                  String?
+  imgSrc                String?
+  description           String
+  maximumPrice          Float?
+  type                  String
+  status                String
+  vendor                String?
+  updatedAt             DateTime
+  lastUpdatedOnDB       DateTime  @default(now())
+  Variants              variants[]
+
+  @@index([id])
+}
+
+model variants {
+  id                   BigInt  @id
+  gid                  String
+  productId            BigInt
+  price                Float
+  sku                  String?
+  inventoryQty         Int
+  
+  Product              products @relation(fields: [productId], references: [id])
+
+  @@index([sku])
+}
+
+model last_order_update {
+  id          Int       @id @default(autoincrement())
+  last_update DateTime? @db.Timestamp(6)
+}
+
+model line_items {
+  id                           BigInt  @id
+  order_id                     BigInt
+  sku                          String? @db.VarChar
+  name                         String  @db.VarChar
+  grams                        Int
+  price                        Decimal @db.Decimal(10, 2)
+  title                        String  @db.VarChar
+  vendor                       String? @db.VarChar
+  taxable                      Boolean
+  quantity                     Int
+  gift_card                    Boolean
+  price_set                    String
+  tax_lines                    String
+  product_id                   BigInt?
+  properties                   String
+  variant_id                   BigInt?
+  pre_tax_price                Decimal @db.Decimal(10, 2)
+  variant_title                String? @db.VarChar
+  product_exists               Boolean
+  total_discount               Decimal @db.Decimal(10, 2)
+  current_quantity             Int
+  attributed_staffs            String
+  pre_tax_price_set            String
+  requires_shipping            Boolean
+  fulfillment_status           String? @db.VarChar
+  total_discount_set           String
+  fulfillment_service          String? @db.VarChar
+  admin_graphql_api_id         String? @db.VarChar
+  discount_allocations         String
+  fulfillable_quantity         Int
+  variant_inventory_management String? @db.VarChar
+  orders                       orders  @relation(fields: [order_id], references: [orderId])
+}
+
+model orders {
+  id                            Int          @default(autoincrement())
+  cancelReason                  String?
+  cancelledAt                   DateTime?
+  closedAt                      DateTime?
+  company                       String?
+  confirmationNumber            String?
+  createdAt                     DateTime     @default(now())
+  currency                      String
+  currentSubtotalPrice          Float
+  currentSubtotalPriceSet       Json
+  currentTotalAdditionalFeesSet Json?
+  currentTotalDiscounts         Float
+  currentTotalDiscountsSet      Json
+  currentTotalDutiesSet         Json?
+  currentTotalPrice             Float
+  currentTotalPriceSet          Json
+  currentTotalTax               Float
+  currentTotalTaxSet            Json
+  fulfillmentStatus             String?
+  name                          String
+  note                          String?
+  noteAttributes                Json
+  orderNumber                   Int
+  orderStatusUrl                String
+  presentmentCurrency           String
+  processedAt                   DateTime
+  reference                     String
+  subtotalPrice                 Float
+  tags                          String
+  totalDiscounts                Float
+  totalLineItemsPrice           Float
+  totalOutstanding              Float
+  totalPrice                    Float
+  totalPriceSet                 Json
+  totalShippingPriceSet         Json
+  totalTax                      Float
+  totalTipReceived              Float
+  totalWeight                   Int
+  updatedAt                     DateTime
+  orderId                       BigInt       @id
+  customerId                    BigInt?
+  confirmed                     Boolean
+  giftCardOnly                  Boolean
+  sourceName                    String?
+  sourceIdentifier              String?
+  sourceUrl                     String?
+  locationId                    BigInt?
+  line_items                    line_items[]
+  shippingAddress1     String?
+  shippingAddress2     String?
+  shippingCity         String?
+  shippingZip          String?
+  shippingProvince     String?
+  shippingCountry      String?
+  shippingCompany      String?
+  shippingLatitude     Float?
+  shippingLongitude    Float?
+  shippingCountryCode  String?
+  shippingProvinceCode String?
+}
