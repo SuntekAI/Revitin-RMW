@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import client from "./graphql/client.js";
 import productsQuery from "./graphql/queries/products.js";
 import variantsQuery from "./graphql/queries/variants.js";
+import logWithTime from "./logger.js";
 
 // Instantiate PrismaClient
 const prisma = new PrismaClient();
@@ -28,7 +29,7 @@ class ShopifyProductSyncGraphQL {
 
       return response.data.products;
     } catch (error) {
-      console.error("GraphQL fetch error:", error);
+      logWithTime("error", `Fetch error: ${error}`);
       throw error;
     }
   }
@@ -51,7 +52,7 @@ class ShopifyProductSyncGraphQL {
 
       return response.data.product.variants;
     } catch (error) {
-      console.error("GraphQL fetch variants error:", error);
+      logWithTime("error", `GraphQL fetch variants error: ${error}`);
       throw error;
     }
   }
@@ -61,7 +62,7 @@ class ShopifyProductSyncGraphQL {
     let after = null;
     let totalProductsFetched = 0;
 
-    console.log("Starting Shopify Product Synchronization with GraphQL...");
+    logWithTime("info", "Starting Shopify Product Synchronization...");
 
     // Clear existing tables before sync
     await this.clearExistingData();
@@ -78,9 +79,7 @@ class ShopifyProductSyncGraphQL {
 
           await this.saveProductsToDatabase(processedProducts);
           totalProductsFetched += products.nodes.length;
-          console.log(
-            `Fetched ${products.nodes.length} products. Total: ${totalProductsFetched}`
-          );
+          logWithTime("info", `Fetched ${products.nodes.length} products. Total: ${totalProductsFetched}`);
         }
 
         // Update pagination
@@ -90,14 +89,12 @@ class ShopifyProductSyncGraphQL {
         // Rate limiting
         await new Promise((resolve) => setTimeout(resolve, 100));
       } catch (error) {
-        console.error("Sync Error:", error);
+        logWithTime("error", `Sync Error: ${error}`);
         hasNextPage = false;
       }
     }
 
-    console.log(
-      `Product Sync Completed. Total Products: ${totalProductsFetched}`
-    );
+    logWithTime("info", `Product Sync Completed. Total Products: ${totalProductsFetched}`);
   }
 
   async processProductsWithPagination(products) {
@@ -144,9 +141,9 @@ class ShopifyProductSyncGraphQL {
       // Then delete all products
       await prisma.products.deleteMany();
 
-      console.log("Existing product and variant data cleared successfully.");
+      logWithTime("info", "Existing product and variant data cleared successfully.");
     } catch (error) {
-      console.error("Error clearing existing data:", error);
+      logWithTime("error", `Error clearing existing data: ${error}`);
       throw error;
     }
   }
@@ -193,12 +190,9 @@ class ShopifyProductSyncGraphQL {
         skipDuplicates: true,
       });
 
-      console.log("Products and variants stored in the database successfully.");
+      logWithTime("info", "Products and variants stored in the database successfully.");
     } catch (error) {
-      console.error(
-        "Error storing products and variants in the database:",
-        error
-      );
+      logWithTime("error", `Error storing products and variants in the database: ${error}`);
     }
   }
 }
@@ -209,7 +203,7 @@ async function main() {
 }
 
 main()
-  .catch(console.error)
+  .catch((e) => logWithTime("error", e))
   .finally(async () => await prisma.$disconnect());
 
 export default ShopifyProductSyncGraphQL;

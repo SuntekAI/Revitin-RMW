@@ -1,7 +1,8 @@
 import axios from "axios";
 import { PrismaClient } from "@prisma/client";
-import dotenv from "dotenv";
+import logWithTime from "./logger.js";
 import { createNewOrders } from "./getNewOrdersByCreatedAt.js";
+import dotenv from "dotenv";
 dotenv.config();
 
 const prisma = new PrismaClient();
@@ -31,8 +32,8 @@ async function fetchAndProcessShopifyOrders(
       const orders = response.data.orders;
       await processOrders(orders);
       processedCount += orders.length;
-      console.log("Processed orders:", orders.length);
-      console.log("Total orders processed so far:", processedCount);
+      logWithTime("info", `Processed orders: ${orders.length}`);
+      logWithTime("info", `Total orders processed so far: ${processedCount}`);
 
       // Update latest update time
       const maxOrderTime = Math.max(
@@ -57,7 +58,7 @@ async function fetchAndProcessShopifyOrders(
         }
       }
     } catch (error) {
-      console.error(`Error fetching orders: ${error.message}`);
+      logWithTime("error", `Error fetching orders: ${error.message}`);
       throw error;
     }
   }
@@ -72,7 +73,7 @@ async function processOrders(orders) {
 }
 
 async function upsertOrder(order) {
-  console.log(`Upserting order ${order.id}`);
+  logWithTime("info", `Upserting order ${order.id}`);
   const lineItemsData = order.line_items.map((item) => ({
     id: BigInt(item.id),
     sku: item.sku || null,
@@ -156,15 +157,14 @@ async function upsertOrder(order) {
       sourceIdentifier: order.source_identifier,
       sourceUrl: order.source_url,
       locationId: order.location_id,
+      
       // Handle line items
       line_items: {
-        deleteMany: {}, // Delete existing line items for this order
-        createMany: {
-          data: lineItemsData.map((lineItem) => ({
-            ...lineItem, // Spread existing lineItem properties
-            // The relationship to orders is handled automatically by Prisma
-          })),
-        },
+        upsert: lineItemsData.map((lineItem) => ({
+          where: { id: lineItem.id },
+          update: { ...lineItem },
+          create: { ...lineItem },
+        })),
       },
 
       giftCardOnly: lineItemsData.every((item) => item.gift_card === true),
@@ -256,9 +256,7 @@ async function upsertOrder(order) {
 async function main() {
   try {
     const lastUpdateTime = await createNewOrders();
-    console.log(
-      `Orders updated. Last update time in updateOldOrders: ${lastUpdateTime}`
-    );
+    logWithTime("info", `Orders updated. Last update time in updateOldOrders: ${lastUpdateTime}`);
 
     const { processedCount, latestUpdateTime } =
       await fetchAndProcessShopifyOrders(
@@ -268,11 +266,11 @@ async function main() {
       );
 
     if (processedCount === 0) {
-      console.log("No updated orders found");
+      logWithTime("info", "No updated orders found");
       return;
     }
 
-    console.log(`Processed ${processedCount} orders from Shopify`);
+    logWithTime("info", `Processed ${processedCount} orders from Shopify`);
 
     // Update the last_order_update table with the latest update time
     await prisma.last_order_update.upsert({
@@ -286,22 +284,17 @@ async function main() {
       },
     });
 
-    console.log(
-      `Updated last_order_update to ${latestUpdateTime.toISOString()}`
-    );
-
-    console.log(
-      `Job completed successfully in updateOldOrders.js @ ${new Date().toISOString()}`
-    );
+    logWithTime("info", `Updated last_order_update to ${latestUpdateTime.toISOString()}`);
+    logWithTime("info", `Job completed successfully in updateOldOrders.js @ ${new Date().toISOString()}`);
   } catch (error) {
-    console.error("Error in main function:", error);
+    logWithTime("error", `Error in main function: ${error}`);
   } finally {
     await prisma.$disconnect();
   }
 }
 
 main().catch((e) => {
-  console.error(e);
+  logWithTime("error", e);
   prisma.$disconnect();
   process.exit(1);
 });

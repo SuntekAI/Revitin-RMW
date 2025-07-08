@@ -1,5 +1,6 @@
 import axios from "axios";
 import { PrismaClient } from "@prisma/client";
+import logWithTime from "./logger.js";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -30,8 +31,8 @@ async function fetchAndProcessShopifyOrders(
       const orders = response.data.orders;
       await processOrders(orders);
       processedCount += orders.length;
-      console.log("Processed orders:", orders.length);
-      console.log("Total orders processed so far:", processedCount);
+      logWithTime("info", `Processed orders: ${orders.length}`);
+      logWithTime("info", `Total orders processed so far: ${processedCount}`);
 
       // Update latest update time
       const maxOrderTime = Math.max(
@@ -56,7 +57,7 @@ async function fetchAndProcessShopifyOrders(
         }
       }
     } catch (error) {
-      console.error(`Error fetching orders: ${error.message}`);
+      logWithTime("error", `Error fetching orders: ${error.message}`);
       throw error;
     }
   }
@@ -66,13 +67,13 @@ async function fetchAndProcessShopifyOrders(
 
 async function processOrders(orders) {
   for (const order of orders) {
-    console.log("processing order staffs", order.user_id);
+    logWithTime("info", `processing order staffs: ${order.user_id}`);
     await upsertOrder(order);
   }
 }
 
 async function upsertOrder(order) {
-  console.log(`Inserting order id: ${order.id}`);
+  logWithTime("info", `Inserting order id: ${order.id}`);
 
   const lineItemsData = order.line_items.map((item) => ({
     id: BigInt(item.id), // Assuming item.id is already a BigInt or can be converted
@@ -157,14 +158,15 @@ async function upsertOrder(order) {
       sourceIdentifier: order.source_identifier,
       sourceUrl: order.source_url,
       locationId: order.location_id,
+      
       line_items: {
-        deleteMany: {},
-        createMany: {
-          data: lineItemsData.map((lineItem) => ({
-            ...lineItem,
-          })),
-        },
+        upsert: lineItemsData.map((lineItem) => ({
+          where: { id: lineItem.id },
+          update: { ...lineItem },
+          create: { ...lineItem },
+        })),
       },
+
       giftCardOnly: lineItemsData.every((item) => item.gift_card === true),
       shippingAddress1: order.shipping_address?.address1 || null,
       shippingAddress2: order.shipping_address?.address2 || null,
@@ -266,11 +268,11 @@ export async function createNewOrders() {
       );
 
     if (processedCount === 0) {
-      console.log("No updated orders found");
+      logWithTime("info", "No updated orders found");
       return;
     }
 
-    console.log(`Processed ${processedCount} orders from Shopify`);
+    logWithTime("info", `Processed ${processedCount} orders from Shopify`);
 
     // Update the last_order_update table with the latest update time
     await prisma.last_order_update.upsert({
@@ -284,14 +286,10 @@ export async function createNewOrders() {
       },
     });
 
-    console.log(
-      `Updated last_order_update to ${latestUpdateTime.toISOString()} in getNewOrdersByCreatedAt.js`
-    );
-    console.log(
-      `Job completed successfully in getNewOrdersByCreatedAt.js @ ${new Date().toISOString()}`
-    );
+    logWithTime("info", `Updated last_order_update to ${latestUpdateTime.toISOString()} in getNewOrdersByCreatedAt.js`);
+    logWithTime("info", `Job completed successfully in getNewOrdersByCreatedAt.js @ ${new Date().toISOString()}`);
   } catch (error) {
-    console.error("Error in main function:", error);
+    logWithTime("error", `Error in main function: ${error}`);
   } finally {
     await prisma.$disconnect();
     return lastUpdate.last_update;
