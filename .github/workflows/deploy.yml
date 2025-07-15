@@ -31,8 +31,8 @@ jobs:
           platforms: linux/amd64
 
       - name: Dokploy Deployment
-        uses: benbristow/dokploy-deploy-action@0.0.1
+        uses: Pukimaa/dokploy-deploy-action@2.1.0
         with:
-          auth_token: ${{ secrets.DOKPLOY_TOKEN }}
-          application_id: aY1-4R3Qwq4M63UaaFH0H
-          dokploy_url: ${{ secrets.DOKPLOY_URL }}
+          APPLICATION_ID: cG-ttW6-r-HBWy1XC4Qja
+          DOKPLOY_HOST: ${{ secrets.DOKPLOY_HOST }}
+          DOKPLOY_TOKEN: ${{ secrets.DOKPLOY_TOKEN }}
