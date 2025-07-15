@@ -17,4 +17,4 @@ COPY crontab /etc/crontabs/root
 
 RUN chmod 600 /etc/crontabs/root
 
-CMD ["crond", "-f"]
+CMD ["sh", "-c", "crond -f & tail -f /dev/null"]
