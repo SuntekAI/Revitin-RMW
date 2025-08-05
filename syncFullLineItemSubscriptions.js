@@ -13,7 +13,7 @@ async function getSellingPlanDetails(shopifyOrderId, lineItemId) {
   const variables = { id };
 
   const response = await client.request(sellingPlanQuery, {
-    variables
+    variables,
   });
 
   const items = response.data?.order?.lineItems?.nodes;
@@ -41,6 +41,7 @@ const HEADERS = {
 async function fetchAllRechargeOrders() {
   let page = 1;
   let hasMore = true;
+  let highestOrderIdInThisBatch = 0n;
 
   while (hasMore) {
     const res = await fetch(
@@ -51,11 +52,16 @@ async function fetchAllRechargeOrders() {
       }
     );
 
-    const { orders}  = await res.json();
+    const { orders } = await res.json();
 
     if (!orders || orders.length === 0) break;
 
     for (const order of orders) {
+      const rechargeOrderId = BigInt(order.id);
+      if (highestOrderIdInThisBatch === 0n) {
+        highestOrderIdInThisBatch = rechargeOrderId;
+      }
+
       const shopifyOrderId = BigInt(order.external_order_id.ecommerce);
 
       for (const item of order.line_items) {
@@ -85,7 +91,10 @@ async function fetchAllRechargeOrders() {
           });
 
           if (!localLineItem) {
-            logWithTime("warn", `⚠️ Could not match line item for Shopify Order ID ${shopifyOrderId}`);
+            logWithTime(
+              "warn",
+              `⚠️ Could not match line item for Shopify Order ID ${shopifyOrderId}`
+            );
             continue;
           }
 
@@ -141,13 +150,27 @@ async function fetchAllRechargeOrders() {
             },
           });
 
-          logWithTime("info", `✅ Updated subscription for line_item_id ${localLineItem.id}`);         
+          logWithTime(
+            "info",
+            `✅ Updated subscription for line_item_id ${localLineItem.id}`
+          );
         }
       }
     }
 
     page += 1;
     hasMore = orders.length === 250;
+  }
+
+  if (highestOrderIdInThisBatch > 0n) {
+    await prisma.recharge_order_id.create({
+      data: { last_order_id: highestOrderIdInThisBatch },
+    });
+
+    logWithTime(
+      "info",
+      `🔄 Updated last processed Recharge Order ID to ${highestOrderIdInThisBatch}`
+    );
   }
 
   logWithTime("info", "✅ All orders processed.");

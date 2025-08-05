@@ -50,6 +50,11 @@ model last_order_update {
   last_update DateTime? @db.Timestamp(6)
 }
 
+model recharge_order_id {
+  id                Int       @id @default(autoincrement())
+  last_order_id     BigInt
+}
+
 model line_item_subscriptions {
   id                        BigInt   @id @default(autoincrement())
   line_item_id              BigInt   @unique
