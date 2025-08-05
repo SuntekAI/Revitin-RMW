@@ -1,2 +1,3 @@
 0 11,19,3 * * * node /usr/src/app/updateOldOrders.js >> /var/log/updateOldOrders.log 2>&1
+0 12 * * * node /usr/src/app/syncNewLineItemSubscriptions.js >> /var/log/syncNewLineItemSubscriptions.log 2>&1
 0 10 * * * node /usr/src/app/fullProductSync.js >> /var/log/fullProductSync.log 2>&1

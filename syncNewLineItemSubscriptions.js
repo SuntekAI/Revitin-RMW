@@ -39,12 +39,14 @@ const HEADERS = {
 };
 
 async function fetchAllRechargeOrders() {
-  const lastProcessed = await prisma.recharge_order_id.findFirst();
-  const lastProcessedId = lastProcessed?.last_order_id || 0n;
+  const lastProcessed = await prisma.line_item_subscriptions.findFirst({
+    orderBy: { recharge_order_id: "desc" },
+    select: { recharge_order_id: true },
+  });
+  const lastProcessedId = lastProcessed?.recharge_order_id || 0n;
 
   let page = 1;
   let hasMore = true;
-  let highestOrderIdInThisBatch = 0n;
   let stopProcessing = false;
 
   while (hasMore && !stopProcessing) {
@@ -61,10 +63,7 @@ async function fetchAllRechargeOrders() {
     if (!orders || orders.length === 0) break;
 
     for (const order of orders) {
-      const rechargeOrderId = BigInt(order.id); // Recharge order ID (not Shopify)
-      if (highestOrderIdInThisBatch === 0n) {
-        highestOrderIdInThisBatch = rechargeOrderId; // store highest ID from first order in this run
-      }
+      const rechargeOrderId = BigInt(order.id); 
 
       // Stop processing if we've already processed this order before
       if (rechargeOrderId <= lastProcessedId) {
@@ -118,6 +117,7 @@ async function fetchAllRechargeOrders() {
           const updatedOrCreated = await prisma.line_item_subscriptions.upsert({
             where: { line_item_id: localLineItem.id },
             update: {
+              recharge_order_id: rechargeOrderId,
               is_subscription: true,
               selling_plan_id: sellingPlanId,
               selling_plan_name: sellingPlanName,
@@ -139,6 +139,7 @@ async function fetchAllRechargeOrders() {
             },
             create: {
               line_item_id: localLineItem.id,
+              recharge_order_id: rechargeOrderId,
               is_subscription: true,
               selling_plan_id: sellingPlanId,
               selling_plan_name: sellingPlanName,
@@ -170,23 +171,6 @@ async function fetchAllRechargeOrders() {
 
     page += 1;
     hasMore = orders.length === 250;
-  }
-
-  if (highestOrderIdInThisBatch > 0n) {
-    if (lastProcessed) {
-      await prisma.recharge_order_id.update({
-        where: { id: lastProcessed.id },
-        data: { last_order_id: highestOrderIdInThisBatch },
-      });
-    } else {
-      await prisma.recharge_order_id.create({
-        data: { last_order_id: highestOrderIdInThisBatch },
-      });
-    }
-    logWithTime(
-      "info",
-      `🔄 Updated last processed Recharge Order ID to ${highestOrderIdInThisBatch}`
-    );
   }
 
   logWithTime("info", "✅ All orders processed.");
