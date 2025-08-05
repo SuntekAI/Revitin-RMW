@@ -40,6 +40,11 @@ const HEADERS = {
 
 async function fetchAllRechargeOrders() {
   const lastProcessed = await prisma.line_item_subscriptions.findFirst({
+    where: {
+      recharge_order_id: {
+        not: null,
+      },
+    },
     orderBy: { recharge_order_id: "desc" },
     select: { recharge_order_id: true },
   });
@@ -63,7 +68,7 @@ async function fetchAllRechargeOrders() {
     if (!orders || orders.length === 0) break;
 
     for (const order of orders) {
-      const rechargeOrderId = BigInt(order.id); 
+      const rechargeOrderId = BigInt(order.id);
 
       // Stop processing if we've already processed this order before
       if (rechargeOrderId <= lastProcessedId) {
