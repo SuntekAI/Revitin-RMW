@@ -51,6 +51,8 @@ model line_item_subscriptions {
   selling_plan_name        String?
   subscription_contract_id String?
   contract_status          String?
+  cancellation_reason      String?
+  cancelled_at             DateTime?
   next_billing_date        DateTime?
   billing_interval         String?
   billing_interval_count   Int?

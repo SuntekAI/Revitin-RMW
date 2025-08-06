@@ -39,16 +39,7 @@ const HEADERS = {
 };
 
 async function fetchAllRechargeOrders() {
-  const lastProcessed = await prisma.line_item_subscriptions.findFirst({
-    where: {
-      recharge_order_id: {
-        not: null,
-      },
-    },
-    orderBy: { recharge_order_id: "desc" },
-    select: { recharge_order_id: true },
-  });
-  const lastProcessedId = lastProcessed?.recharge_order_id || 0n;
+  const lastProcessedId = 0n;
 
   let page = 1;
   let hasMore = true;
