@@ -38,6 +38,32 @@ const HEADERS = {
   "X-Recharge-Access-Token": process.env.RECHARGE_API_TOKEN,
 };
 
+async function safeFetch(url, options = {}, retries = 3, delay = 1000) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, options);
+
+      // If server responded with a non-200 status, throw to retry
+      if (!res.ok) throw new Error(`HTTP ${res.status} on ${url}`);
+
+      return res;
+    } catch (err) {
+      console.error(`Fetch failed (attempt ${attempt}):`, err.message);
+
+      // Retry only on network issues or server errors (5xx)
+      const retryable =
+        err.cause?.code === "UND_ERR_SOCKET" ||
+        err.name === "TypeError" ||
+        (err.message.startsWith("HTTP 5") && attempt < retries);
+
+      if (!retryable || attempt === retries) throw err;
+
+      // Wait before retrying
+      await new Promise((res) => setTimeout(res, delay));
+    }
+  }
+}
+
 async function fetchAllRechargeOrders() {
   const lastProcessedId = 0n;
 
@@ -46,7 +72,7 @@ async function fetchAllRechargeOrders() {
   let stopProcessing = false;
 
   while (hasMore && !stopProcessing) {
-    const res = await fetch(
+    const res = await safeFetch(
       `${RECHARGE_API}/orders?limit=250&page=${page}&sort_by=id-desc`,
       {
         method: "GET",
@@ -74,7 +100,7 @@ async function fetchAllRechargeOrders() {
           const subscriptionId = item.purchase_item_id;
 
           // Now fetch subscription details
-          const subRes = await fetch(
+          const subRes = await safeFetch(
             `${RECHARGE_API}/subscriptions/${subscriptionId}`,
             {
               method: "GET",
