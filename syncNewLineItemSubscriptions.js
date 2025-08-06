@@ -129,7 +129,7 @@ async function fetchAllRechargeOrders() {
               subscription_contract_id: subscription.id?.toString(),
               contract_status: subscription.status,
               cancellation_reason: subscription.cancellation_reason,
-              cancellation_date: subscription.cancellation_at,
+              cancellation_date: subscription.cancelled_at,
               next_billing_date: subscription.next_charge_scheduled_at
                 ? new Date(subscription.next_charge_scheduled_at)
                 : undefined,
@@ -153,7 +153,7 @@ async function fetchAllRechargeOrders() {
               subscription_contract_id: subscription.id?.toString(),
               contract_status: subscription.status,
               cancellation_reason: subscription.cancellation_reason,
-              cancellation_date: subscription.cancellation_at,
+              cancellation_date: subscription.cancelled_at,
               next_billing_date: subscription.next_charge_scheduled_at
                 ? new Date(subscription.next_charge_scheduled_at)
                 : undefined,
