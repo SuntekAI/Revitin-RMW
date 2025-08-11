@@ -33,6 +33,6 @@ jobs:
       - name: Dokploy Deployment
         uses: Pukimaa/dokploy-deploy-action@2.1.0
         with:
-          APPLICATION_ID: aY1-4R3Qwq4M63UaaFH0H
+          APPLICATION_ID: NWQKrv-rXbD7XmvHX5vAs
           DOKPLOY_HOST: ${{ secrets.DOKPLOY_HOST }}
           DOKPLOY_TOKEN: ${{ secrets.DOKPLOY_TOKEN }}
